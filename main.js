@@ -1,50 +1,63 @@
-// const 확실히 값이 안바뀌는것
-// let 확실히 값이 바뀌는것
-// 바뀔지 안바뀔지 애매할 때 -> 일단 const로 선언해봄
 const http = require('http')
 const fs = require('fs')
 const url = require('url')
 
-const app = http.createServer(function (req, res) {
-    let _url = req.url
-    const queryData = url.parse(_url, true).query
-    let title = queryData.id;
-    let filePath = queryData.id;
+function templateHTML(title, list, body){
+    return `
+          <!doctype html>
+          <html lang="ko">
+          <head>
+            <title>WEB1 - ${title}</title>
+            <meta charset="utf-8">
+          </head>
+          <body>
+            <h1><a href="/">WEB</a></h1>
+            ${list}
+            ${body}
+          </body>
+          </html>
+          `
+}
 
-    if (_url === '/')
-        title = 'Welcome'
-    filePath = 'welcome';
-    if (_url === '/favicon.ico'){
-        res.writeHead(404, {"content-Type": "text/palin"});
-        res.write("404 Not found");
-        res.end();
+function templateList(filelist) {
+    let list = '<ul>'
+    for (let i = 0; i < filelist.length; i++) {
+        list += `<li><a href="/?id=${filelist[i]}"> ${filelist[i]} </a></li>`
     }
+    list += '</ul>'
+    return list;
+}
 
+const app = http.createServer(function (request, response) {
+    const _url = request.url
+    const queryData = url.parse(_url, true).query
+    const pathname = url.parse(_url, true).pathname
+    if (pathname === '/') {
+        if (queryData.id === undefined) {
+            const title = 'Welcome'
+            const description = 'Hello, Node.js'
 
-    res.writeHead(200)
-    fs.readFile(`data/${filePath}`, 'utf8', function (err, data) {
-        const template = `
-<!doctype html>
-<html lang="ko">
-<head>
-  <title>WEB1 - ${title}</title>
-  <meta charset="utf-8">
-</head>
-<body>
-  <h1><a href="index.html">WEB</a></h1>
-  <ol>
-    <li><a href="/?id=HTML">HTML</a></li>
-    <li><a href="/?id=CSS">CSS</a></li>
-    <li><a href="/?id=JavaScript">JavaScript</a></li>
-  </ol>
-  <h2>${title}</h2>
-  <p>${data}</p>
-</body>
-</html>
-  `;
-        res.end(template);
-    });
-});
-app.listen(3000);
+            fs.readdir('data/', function (err, data) {
+                const list = templateList(data)
+                const template = templateHTML(title, list, `<h2>${title}</h2>${description}`)
+                response.writeHead(200)
+                response.end(template)
+            })
 
-//커밋 테스트
+        } else {
+            fs.readdir('data/', function (err, data) {
+                const list = templateList(data);
+                fs.readFile(`data/${queryData.id}`, 'utf8', function (err, description) {
+                    const title = queryData.id
+                    const template = templateHTML(title, list, `<h2>${title}</h2>${description}`)
+                    response.writeHead(200)
+                    response.end(template)
+                })
+            })
+        }
+    } else {
+        response.writeHead(404)
+        response.end('Not found')
+    }
+})
+app.listen(3000)
