@@ -6,4 +6,3 @@ const M = {
 };
 
 module.exports = M;
-//exports = M <- 이렇게 하지 말것
